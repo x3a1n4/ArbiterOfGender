@@ -1,4 +1,4 @@
-discord.py==latest
+discord==latest
 numpy==latest
 transformers==latest
 discord-ext-voice-recv==latest
