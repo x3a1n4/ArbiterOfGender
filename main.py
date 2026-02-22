@@ -12,8 +12,10 @@ logging.getLogger("discord.ext.voice_recv.reader").setLevel(logging.CRITICAL)
 logging.getLogger("discord.ext.voice_recv.gateway").setLevel(logging.CRITICAL)
 
 # Load your API key from a file, same pattern as token.txt
-HF_API_KEY = os.environ["HF_TOKEN"]
-HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/Common-Voice-Gender-Detection"
+# HF_API_KEY = os.environ["HF_TOKEN"]
+HF_API_KEY = open("hf_token.txt").read().strip()
+HF_API_URL = "https://router.huggingface.co/models/prithivMLmods/Common-Voice-Gender-Detection"
+#HF_API_URL = "https://router.huggingface.co/models/alefiury/wav2vec2-large-xlsr-53-gender-recognition-librispeech"
 
 # ---------------------------------------------------------------------------
 # Crash handling
@@ -59,7 +61,6 @@ intents.message_content = True
 
 APP_ID = 1475022407071830124
 bot = commands.Bot(command_prefix="!", intents=intents, application_id=APP_ID)
-
 
 @bot.command()
 @commands.is_owner()
@@ -214,7 +215,10 @@ class GenderSink(voice_recv.AudioSink):
 
         response = requests.post(
             HF_API_URL,
-            headers={"Authorization": f"Bearer {HF_API_KEY}"},
+            headers={
+                "Authorization": f"Bearer {HF_API_KEY}",
+                "Content-Type": "audio/wav",
+            },
             data=wav_bytes,
         )
 
@@ -247,5 +251,6 @@ class GenderSink(voice_recv.AudioSink):
 
 # Read token environment variable
 #bot.run(token)
-bot.run(os.environ["DISCORD_TOKEN"])
+# bot.run(os.environ["DISCORD_TOKEN"])
 print("Running!")
+bot.run(open("token.txt").read().strip())
