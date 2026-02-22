@@ -212,7 +212,10 @@ class GenderSink(voice_recv.AudioSink):
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
-with open("token.txt") as f:
-    token = f.read().strip()
+# with open("token.txt") as f:
+#    token = f.read().strip()
 
-bot.run(token)
+# Read token environment variable
+#bot.run(token)
+import os
+bot.run(os.environ["DISCORD_TOKEN"])
