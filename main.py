@@ -5,6 +5,8 @@ from transformers import pipeline
 import asyncio
 import io
 import numpy as np
+import logging
+# logging.getLogger("discord.ext.voice_recv.router").setLevel(logging.CRITICAL)
 
 # ---------------------------------------------------------------------------
 # Config
@@ -95,6 +97,7 @@ class GenderSink(voice_recv.AudioSink):
 
         # user_id -> BytesIO buffer
         self.buffers: dict[int, io.BytesIO] = {}
+        self.pending_kick: set[int] = set()  # users currently being kicked
 
     # ------------------------------------------------------------------
     # AudioSink interface
@@ -106,6 +109,10 @@ class GenderSink(voice_recv.AudioSink):
     def write(self, user: discord.Member, data: voice_recv.VoiceData):
         if user is None or user.bot:
             return
+        """
+        if user.id in self.pending_kick:
+            return
+        """
 
         uid = user.id
         if uid not in self.buffers:
@@ -126,6 +133,11 @@ class GenderSink(voice_recv.AudioSink):
             except Exception as e:
                 print(f"Classifier error: {e}")
                 return
+            
+            """
+            if label.lower() == "male":
+                self.pending_kick.add(uid)  # stop processing their packets immediately
+                """
 
             # Only the Discord API calls need the event loop
             asyncio.run_coroutine_threadsafe(
