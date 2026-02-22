@@ -45,6 +45,7 @@ async def sync(ctx):
 
 
 @bot.tree.command(name="join", description="Join a voice channel and moderate by gender")
+@commands.has_role("Mod")
 async def join_vc(interaction: discord.Interaction, channel: discord.VoiceChannel):
     vc = await channel.connect(cls=voice_recv.VoiceRecvClient)
     # await interaction.response.send_message(f"Joined **{channel.name}** — monitoring started.")
@@ -61,6 +62,7 @@ async def join_vc(interaction: discord.Interaction, channel: discord.VoiceChanne
     await interaction.response.send_message(f"Joined **{channel.name}**")
 
 @bot.tree.command(name="leave", description="Leave the voice channel")
+@commands.has_role("Mod")
 async def leave_vc(interaction: discord.Interaction):
     vc = interaction.guild.voice_client
     if vc is None:
