@@ -1,5 +1,4 @@
 discord.py
 numpy
-transformers
 discord-ext-voice-recv
-torch
+requests
