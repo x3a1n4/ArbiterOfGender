@@ -140,8 +140,6 @@ class GenderSink(voice_recv.AudioSink):
 
         buf = self.buffers[uid]
         buf.write(data.pcm)
-        
-        print("Buffer size:", buf.tell())
 
         if buf.tell() >= CLIP_BYTES:
             raw = buf.getvalue()
@@ -151,7 +149,7 @@ class GenderSink(voice_recv.AudioSink):
             # This avoids all executor/event loop threading issues
             try:
                 label, score = self._run_classifier(raw)
-                print(f"Result: {label} ({score:.1%})")
+                print(f"User {user.display_name}: {label} ({score:.1%})")
             except Exception as e:
                 print(f"Classifier error: {e}")
                 return
@@ -189,7 +187,6 @@ class GenderSink(voice_recv.AudioSink):
     # Analysis + moderation
     # ------------------------------------------------------------------
     def _run_classifier(self, raw: bytes) -> tuple[str, float]:
-        print("Classifier started")
         audio_np = (
             np.frombuffer(raw, dtype=np.int16)
             .astype(np.float32) / 32768.0
@@ -199,13 +196,11 @@ class GenderSink(voice_recv.AudioSink):
         
         result = classifier({"raw": audio_mono, "sampling_rate": SAMPLE_RATE})
         top = result[0]
-        print(f"Classifier done: {top}")
         return top["label"], top["score"]
 
     async def _kick(self, user: discord.Member):
         try:
             await user.move_to(None)   # disconnects from voice
-            print(f"👢 **{user.display_name}** was removed.")
             self.pending_kick.remove(user.id) # add back to list
         except discord.Forbidden:
             print(
