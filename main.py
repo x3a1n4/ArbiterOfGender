@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, voice_recv
-import torch
 from transformers import pipeline
 import asyncio
 import io
