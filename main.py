@@ -6,6 +6,7 @@ import io
 import numpy as np
 import logging
 import requests
+import os
 # logging.getLogger("discord.ext.voice_recv.router").setLevel(logging.CRITICAL)
 logging.getLogger("discord.ext.voice_recv.reader").setLevel(logging.CRITICAL)
 logging.getLogger("discord.ext.voice_recv.gateway").setLevel(logging.CRITICAL)
@@ -246,6 +247,5 @@ class GenderSink(voice_recv.AudioSink):
 
 # Read token environment variable
 #bot.run(token)
-import os
 bot.run(os.environ["DISCORD_TOKEN"])
 print("Running!")
