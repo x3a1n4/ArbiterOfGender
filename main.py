@@ -1,13 +1,18 @@
 import discord
 from discord.ext import commands, voice_recv
-from transformers import pipeline
+# from transformers import pipeline
 import asyncio
 import io
 import numpy as np
 import logging
+import requests
 # logging.getLogger("discord.ext.voice_recv.router").setLevel(logging.CRITICAL)
 logging.getLogger("discord.ext.voice_recv.reader").setLevel(logging.CRITICAL)
 logging.getLogger("discord.ext.voice_recv.gateway").setLevel(logging.CRITICAL)
+
+# Load your API key from a file, same pattern as token.txt
+HF_API_KEY = os.environ["HF_TOKEN"]
+HF_API_URL = "https://api-inference.huggingface.co/models/prithivMLmods/Common-Voice-Gender-Detection"
 
 # ---------------------------------------------------------------------------
 # Crash handling
@@ -38,10 +43,12 @@ CLIP_BYTES   = BYTES_PER_SECOND * CLIP_SECONDS                  # 960 000
 # ---------------------------------------------------------------------------
 # AI model
 # ---------------------------------------------------------------------------
+"""
 classifier = pipeline(
     "audio-classification",
     model="prithivMLmods/Common-Voice-Gender-Detection"
 )
+"""
 
 # ---------------------------------------------------------------------------
 # Bot setup
@@ -186,14 +193,36 @@ class GenderSink(voice_recv.AudioSink):
     # Analysis + moderation
     # ------------------------------------------------------------------
     def _run_classifier(self, raw: bytes) -> tuple[str, float]:
-        audio_np = (
-            np.frombuffer(raw, dtype=np.int16)
-            .astype(np.float32) / 32768.0
-        )
-        # Stereo → mono by averaging channels
-        audio_mono = audio_np.reshape(-1, CHANNELS).mean(axis=1)
+        # Convert raw PCM to WAV bytes for the API
+        wav_buffer = io.BytesIO()
+        import wave
+        with wave.open(wav_buffer, 'wb') as wf:
+            wf.setnchannels(1)          # mono
+            wf.setsampwidth(2)          # 16-bit
+            wf.setframerate(SAMPLE_RATE)
+            # Stereo PCM -> mono by averaging channels first
+            audio_np = (
+                np.frombuffer(raw, dtype=np.int16)
+                .reshape(-1, CHANNELS)
+                .mean(axis=1)
+                .astype(np.int16)
+            )
+            wf.writeframes(audio_np.tobytes())
         
-        result = classifier({"raw": audio_mono, "sampling_rate": SAMPLE_RATE})
+        wav_bytes = wav_buffer.getvalue()
+
+        response = requests.post(
+            HF_API_URL,
+            headers={"Authorization": f"Bearer {HF_API_KEY}"},
+            data=wav_bytes,
+        )
+
+        if response.status_code != 200:
+            raise RuntimeError(f"HF API error {response.status_code}: {response.text}")
+
+        result = response.json()
+        
+        # Result is a list of {label, score} dicts, already sorted by score descending
         top = result[0]
         return top["label"], top["score"]
 
@@ -219,3 +248,4 @@ class GenderSink(voice_recv.AudioSink):
 #bot.run(token)
 import os
 bot.run(os.environ["DISCORD_TOKEN"])
+print("Running!")
