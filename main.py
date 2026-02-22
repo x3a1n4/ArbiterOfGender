@@ -166,7 +166,7 @@ class GenderSink(voice_recv.AudioSink):
     async def _act(self, user: discord.Member, label: str, score: float):
         """
         await self.text_channel.send(
-            f"🎙️ **{user.display_name}** — `{label}` ({score:.1%} confidence)"
+            f"**{user.display_name}** — `{label}` ({score:.1%} confidence)"
         )
         """
         if label.lower() == "male":
@@ -204,10 +204,10 @@ class GenderSink(voice_recv.AudioSink):
             self.pending_kick.remove(user.id) # add back to list
         except discord.Forbidden:
             print(
-                f"⚠️ No permission to move **{user.display_name}**."
+                f"No permission to move **{user.display_name}**."
             )
         except discord.HTTPException as e:
-            await self.text_channel.send(f"⚠️ Could not remove {user.display_name}: {e}")
+            print(f"Could not remove {user.display_name}: {e}")
 
 
 # ---------------------------------------------------------------------------
