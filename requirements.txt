@@ -1,5 +1,5 @@
-discord==latest
-numpy==latest
-transformers==latest
-discord-ext-voice-recv==latest
-torch==latest
+discord.py
+numpy
+transformers
+discord-ext-voice-recv
+torch=
