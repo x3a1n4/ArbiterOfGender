@@ -7,11 +7,29 @@ import io
 import numpy as np
 import logging
 # logging.getLogger("discord.ext.voice_recv.router").setLevel(logging.CRITICAL)
+logging.getLogger("discord.ext.voice_recv.reader").setLevel(logging.CRITICAL)
+logging.getLogger("discord.ext.voice_recv.gateway").setLevel(logging.CRITICAL)
+
+# ---------------------------------------------------------------------------
+# Crash handling
+# ---------------------------------------------------------------------------
+import discord.opus
+from discord.ext.voice_recv import opus as vr_opus
+
+_original_process_packet = vr_opus.PacketDecoder._process_packet
+
+def _safe_process_packet(self, packet):
+    try:
+        return _original_process_packet(self, packet)
+    except discord.opus.OpusError:
+        return None
+
+vr_opus.PacketDecoder._process_packet = _safe_process_packet
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-CLIP_SECONDS = 5          # analyse every N seconds of speech per user
+CLIP_SECONDS = 2          # analyse every N seconds of speech per user
 SAMPLE_RATE  = 48000      # Discord PCM: 48 kHz, stereo, 16-bit
 CHANNELS     = 2
 BYTES_PER_SAMPLE = 2      # int16
@@ -111,10 +129,10 @@ class GenderSink(voice_recv.AudioSink):
     def write(self, user: discord.Member, data: voice_recv.VoiceData):
         if user is None or user.bot:
             return
-        """
+        
         if user.id in self.pending_kick:
             return
-        """
+        
 
         uid = user.id
         if uid not in self.buffers:
@@ -122,6 +140,8 @@ class GenderSink(voice_recv.AudioSink):
 
         buf = self.buffers[uid]
         buf.write(data.pcm)
+        
+        print("Buffer size:", buf.tell())
 
         if buf.tell() >= CLIP_BYTES:
             raw = buf.getvalue()
@@ -136,10 +156,8 @@ class GenderSink(voice_recv.AudioSink):
                 print(f"Classifier error: {e}")
                 return
             
-            """
             if label.lower() == "male":
                 self.pending_kick.add(uid)  # stop processing their packets immediately
-                """
 
             # Only the Discord API calls need the event loop
             asyncio.run_coroutine_threadsafe(
@@ -148,12 +166,14 @@ class GenderSink(voice_recv.AudioSink):
             )
 
     async def _act(self, user: discord.Member, label: str, score: float):
+        """
         await self.text_channel.send(
             f"🎙️ **{user.display_name}** — `{label}` ({score:.1%} confidence)"
         )
+        """
         if label.lower() == "male":
             await self.text_channel.send(
-                f"👢 **{user.display_name}** was removed."
+                f"**{user.display_name}** was removed ({score:.2%} confidence)"
             )
             await self._kick(user)
 
@@ -186,6 +206,7 @@ class GenderSink(voice_recv.AudioSink):
         try:
             await user.move_to(None)   # disconnects from voice
             print(f"👢 **{user.display_name}** was removed.")
+            self.pending_kick.remove(user.id) # add back to list
         except discord.Forbidden:
             print(
                 f"⚠️ No permission to move **{user.display_name}**."
